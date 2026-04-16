@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Compass, Mail, Lock, LogIn, UserPlus, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { sanitizeEmail, sanitizeFullName, validateAuthInput } from '../utils/security';
 
 export default function SignIn() {
   const { login, register } = useAuth();
@@ -16,19 +17,33 @@ export default function SignIn() {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    const validation = validateAuthInput({
+      email,
+      password,
+      fullName,
+      isRegister,
+    });
+
+    if (!validation.valid) {
+      setError(validation.message);
+      return;
+    }
+
+    const {
+      email: safeEmail,
+      password: safePassword,
+      fullName: safeFullName,
+    } = validation.sanitized;
+
     setLoading(true);
 
     try {
       let result;
       if (isRegister) {
-        if (!fullName.trim()) {
-          setError('Full name is required');
-          setLoading(false);
-          return;
-        }
-        result = await register(email, password, fullName);
+        result = await register(safeEmail, safePassword, safeFullName);
       } else {
-        result = await login(email, password);
+        result = await login(safeEmail, safePassword);
       }
 
       if (result.success) {
@@ -89,7 +104,8 @@ export default function SignIn() {
                 type="text" 
                 required
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(e) => setFullName(sanitizeFullName(e.target.value))}
+                maxLength={80}
                 className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all" 
                 placeholder="John Doe"
               />
@@ -104,9 +120,11 @@ export default function SignIn() {
                 type="email" 
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmail(sanitizeEmail(e.target.value))}
+                maxLength={254}
                 className="w-full border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all" 
                 placeholder="alex@studioalpha.com"
+                autoComplete="email"
               />
             </div>
           </div>
@@ -123,8 +141,10 @@ export default function SignIn() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                maxLength={128}
                 className="w-full border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all" 
                 placeholder="••••••••"
+                autoComplete={isRegister ? 'new-password' : 'current-password'}
               />
             </div>
           </div>
