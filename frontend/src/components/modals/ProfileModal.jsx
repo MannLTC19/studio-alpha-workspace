@@ -1,17 +1,24 @@
 import React from 'react';
-import { X, MessageSquare as MessageSquareIcon, Settings as SettingsIcon, MapPin, Mail, Info, Award } from 'lucide-react';
+import { X, MessageSquare as MessageSquareIcon, Settings as SettingsIcon, LogOut, MapPin, Mail, Info, Award } from 'lucide-react';
 import clsx from '../../utils/clsx';
 import { useNavigation } from '../../context/NavigationContext';
 import { useChat } from '../../context/ChatContext';
+import { useAuth } from '../../context/AuthContext';
 import { CURRENT_USER_NAME } from '../../utils/data';
 
 export default function ProfileModal({ profile, onClose }) {
   const { navigate } = useNavigation();
   const { addDM } = useChat();
+  const { logout } = useAuth();
 
   const handleMessage = () => {
     const slug = addDM(profile.name);
     navigate(`/messaging?dm=${slug}`);
+    onClose();
+  };
+
+  const handleLogout = async () => {
+    await logout();
     onClose();
   };
 
@@ -35,16 +42,21 @@ export default function ProfileModal({ profile, onClose }) {
           <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-4 border-white rounded-full"></div>
         </div>
 
-        <div className="flex justify-end px-6 pt-4 pb-2">
+        <div className="flex justify-end gap-3 px-6 pt-4 pb-2">
           {profile.name !== CURRENT_USER_NAME && (
             <button onClick={handleMessage} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors flex items-center gap-2">
               <MessageSquareIcon className="w-4 h-4" /> Message
             </button>
           )}
           {profile.name === CURRENT_USER_NAME && (
-            <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-200 transition-colors flex items-center gap-2">
-              <SettingsIcon className="w-4 h-4" /> Edit Profile
-            </button>
+            <>
+              <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-200 transition-colors flex items-center gap-2">
+                <SettingsIcon className="w-4 h-4" /> Edit Profile
+              </button>
+              <button onClick={handleLogout} className="px-4 py-2 bg-red-50 text-red-700 rounded-xl text-sm font-bold shadow-sm hover:bg-red-100 transition-colors flex items-center gap-2">
+                <LogOut className="w-4 h-4" /> Logout
+              </button>
+            </>
           )}
         </div>
 

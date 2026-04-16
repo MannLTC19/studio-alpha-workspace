@@ -1,19 +1,50 @@
 import React, { useState } from 'react';
-import { Compass, Mail, Lock, LogIn } from 'lucide-react';
+import { Compass, Mail, Lock, LogIn, UserPlus, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function SignIn() {
-  const { login } = useAuth();
+  const { login, register } = useAuth();
+  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
     setLoading(true);
-    setTimeout(() => {
-      login();
-    }, 800);
+
+    try {
+      let result;
+      if (isRegister) {
+        if (!fullName.trim()) {
+          setError('Full name is required');
+          setLoading(false);
+          return;
+        }
+        result = await register(email, password, fullName);
+      } else {
+        result = await login(email, password);
+      }
+
+      if (result.success) {
+        setSuccess(isRegister ? 'Account created successfully!' : 'Signed in successfully!');
+        // Clear form
+        setEmail('');
+        setPassword('');
+        setFullName('');
+      } else {
+        setError(result.error || 'An error occurred');
+      }
+    } catch (err) {
+      setError(err.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,12 +63,41 @@ export default function SignIn() {
         
         <div className="text-center mb-8">
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1">Studio Alpha Portal</h1>
-          <p className="text-sm text-slate-500 font-medium">Sign in to your workspace</p>
+          <p className="text-sm text-slate-500 font-medium">
+            {isRegister ? 'Create a new account' : 'Sign in to your workspace'}
+          </p>
         </div>
 
+        {error && (
+          <div className="mb-5 p-3 rounded-lg bg-red-50 border border-red-200 flex gap-2 items-start">
+            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-5 p-3 rounded-lg bg-green-50 border border-green-200">
+            <p className="text-sm text-green-700">{success}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
+          {isRegister && (
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase block mb-1.5">Full Name</label>
+              <input 
+                type="text" 
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all" 
+                placeholder="John Doe"
+              />
+            </div>
+          )}
+          
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase block mb-1.5">Company Email</label>
+            <label className="text-xs font-bold text-slate-500 uppercase block mb-1.5">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input 
@@ -54,7 +114,7 @@ export default function SignIn() {
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <label className="text-xs font-bold text-slate-500 uppercase block">Password</label>
-              <a href="#" className="text-xs font-bold text-blue-600 hover:underline">Forgot?</a>
+              {!isRegister && <a href="#" className="text-xs font-bold text-blue-600 hover:underline">Forgot?</a>}
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -71,15 +131,37 @@ export default function SignIn() {
 
           <button 
             type="submit" 
-            disabled={loading || !email || !password}
+            disabled={loading || !email || !password || (isRegister && !fullName)}
             className="w-full py-3 mt-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-70 disabled:hover:bg-blue-700 flex justify-center items-center gap-2"
           >
-            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><LogIn className="w-4 h-4"/> Sign In</>}
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : isRegister ? (
+              <><UserPlus className="w-4 h-4"/> Create Account</>
+            ) : (
+              <><LogIn className="w-4 h-4"/> Sign In</>
+            )}
           </button>
         </form>
         
-        <p className="text-center text-xs text-slate-500 font-medium mt-8">
-          Secured by Studio Alpha SSO
+        <div className="mt-6 pt-6 border-t border-slate-200">
+          <p className="text-center text-sm text-slate-600">
+            {isRegister ? 'Already have an account? ' : "Don't have an account? "}
+            <button 
+              onClick={() => {
+                setIsRegister(!isRegister);
+                setError('');
+                setSuccess('');
+              }}
+              className="font-bold text-blue-600 hover:underline"
+            >
+              {isRegister ? 'Sign In' : 'Register'}
+            </button>
+          </p>
+        </div>
+        
+        <p className="text-center text-xs text-slate-500 font-medium mt-6">
+          Secured by Studio Alpha SSO + Supabase
         </p>
       </div>
     </div>
