@@ -1,6 +1,7 @@
 import React, { useState, createContext, useContext, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
 import { validateAuthInput, toSafeAuthErrorMessage } from '../utils/security';
+import { getRateLimitState, recordRateLimitFailure, clearRateLimit } from '../utils/authRateLimit';
 
 export const AuthContext = createContext(null);
 
@@ -56,6 +57,11 @@ export function AuthProvider({ children }) {
     }
 
     const { email: safeEmail, password: safePassword } = validation.sanitized;
+    const rateLimitState = getRateLimitState('login', safeEmail);
+    if (rateLimitState.limited) {
+      setError(rateLimitState.message);
+      return { success: false, error: rateLimitState.message };
+    }
 
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -63,10 +69,12 @@ export function AuthProvider({ children }) {
         password: safePassword,
       });
       if (signInError) throw signInError;
+      clearRateLimit('login', safeEmail);
       setIsAuthenticated(true);
       setUser(data.user);
       return { success: true };
     } catch (err) {
+      recordRateLimitFailure('login', safeEmail);
       const safeMessage = toSafeAuthErrorMessage(err);
       setError(safeMessage);
       return { success: false, error: safeMessage };
@@ -86,6 +94,11 @@ export function AuthProvider({ children }) {
       password: safePassword,
       fullName: safeFullName,
     } = validation.sanitized;
+    const rateLimitState = getRateLimitState('register', safeEmail);
+    if (rateLimitState.limited) {
+      setError(rateLimitState.message);
+      return { success: false, error: rateLimitState.message };
+    }
 
     try {
       // Sign up the user
@@ -111,10 +124,12 @@ export function AuthProvider({ children }) {
         }
       }
 
+      clearRateLimit('register', safeEmail);
       setIsAuthenticated(true);
       setUser(authData.user);
       return { success: true };
     } catch (err) {
+      recordRateLimitFailure('register', safeEmail);
       const safeMessage = toSafeAuthErrorMessage(err);
       setError(safeMessage);
       return { success: false, error: safeMessage };
