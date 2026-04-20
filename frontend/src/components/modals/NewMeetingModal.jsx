@@ -8,6 +8,7 @@ export default function NewMeetingModal({ onClose }) {
   const [date, setDate] = useState('Tomorrow');
   const [time, setTime] = useState('11:00 AM - 12:00 PM');
   const [type, setType] = useState('Internal');
+  const [meetingLink, setMeetingLink] = useState('https://teams.microsoft.com/');
 
   const handleSubmit = () => {
     if (!title.trim()) return;
@@ -18,7 +19,7 @@ export default function NewMeetingModal({ onClose }) {
       time,
       attendees: 1, 
       type,
-      link: `https://teams.microsoft.com/l/meetup-join/19%3amock_meeting_${Date.now()}`,
+      link: meetingLink.trim(),
       agendas: []
     });
     onClose();
@@ -59,14 +60,25 @@ export default function NewMeetingModal({ onClose }) {
               <option value="External">External / Client</option>
             </select>
           </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Meeting Link</label>
+            <input
+              value={meetingLink}
+              onChange={(e) => setMeetingLink(e.target.value)}
+              type="url"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#5B5FC7] outline-none"
+              placeholder="https://teams.microsoft.com/l/meetup-join/..."
+            />
+          </div>
           
           <div className="bg-[#5B5FC7]/5 border border-[#5B5FC7]/20 p-3 rounded-lg mt-2 flex gap-3 items-start">
              <Info className="w-5 h-5 text-[#5B5FC7] flex-shrink-0 mt-0.5" />
-             <p className="text-xs text-slate-600 leading-relaxed">A unique Microsoft Teams link will be automatically generated and attached to this meeting.</p>
+             <p className="text-xs text-slate-600 leading-relaxed">Paste a real Microsoft Teams meeting URL so attendees can join directly from the workspace.</p>
           </div>
 
-          <button onClick={handleSubmit} disabled={!title.trim()} className="w-full mt-4 py-2.5 bg-[#5B5FC7] text-white rounded-lg font-bold disabled:opacity-50 hover:bg-[#4b4eb0] transition-colors flex justify-center items-center gap-2">
-            Generate Teams Link
+          <button onClick={handleSubmit} disabled={!title.trim() || !meetingLink.trim()} className="w-full mt-4 py-2.5 bg-[#5B5FC7] text-white rounded-lg font-bold disabled:opacity-50 hover:bg-[#4b4eb0] transition-colors flex justify-center items-center gap-2">
+            Create Meeting
           </button>
         </div>
       </div>

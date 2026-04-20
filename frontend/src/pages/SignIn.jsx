@@ -47,7 +47,7 @@ export default function SignIn() {
       }
 
       if (result.success) {
-        setSuccess(isRegister ? 'Account created successfully!' : 'Signed in successfully!');
+        setSuccess(result.message || (isRegister ? 'Account created successfully!' : 'Signed in successfully!'));
         // Clear form
         setEmail('');
         setPassword('');

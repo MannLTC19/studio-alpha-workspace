@@ -1,15 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X, MessageSquare as MessageSquareIcon, Settings as SettingsIcon, LogOut, MapPin, Mail, Info, Award } from 'lucide-react';
 import clsx from '../../utils/clsx';
 import { useNavigation } from '../../context/NavigationContext';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
-import { CURRENT_USER_NAME } from '../../utils/data';
+import { useProfile } from '../../context/ProfileContext';
 
 export default function ProfileModal({ profile, onClose }) {
   const { navigate } = useNavigation();
   const { addDM } = useChat();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const { saveCurrentProfile, profileSaving } = useProfile();
+  const isCurrentUser = profile.isCurrentUser || profile.id === user?.id;
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [formState, setFormState] = useState(() => ({
+    name: profile.name || '',
+    bio: profile.bio || '',
+    avatar: profile.avatar || '',
+  }));
 
   const handleMessage = () => {
     const slug = addDM(profile.name);
@@ -20,6 +30,22 @@ export default function ProfileModal({ profile, onClose }) {
   const handleLogout = async () => {
     await logout();
     onClose();
+  };
+
+  const handleSave = async () => {
+    setSaveError('');
+    const result = await saveCurrentProfile({
+      name: formState.name.trim(),
+      bio: formState.bio.trim(),
+      avatar: formState.avatar.trim() || null,
+    });
+
+    if (!result.success) {
+      setSaveError(result.error || 'Unable to save profile.');
+      return;
+    }
+
+    setIsEditing(false);
   };
 
   return (
@@ -43,14 +69,17 @@ export default function ProfileModal({ profile, onClose }) {
         </div>
 
         <div className="flex justify-end gap-3 px-6 pt-4 pb-2">
-          {profile.name !== CURRENT_USER_NAME && (
+          {!isCurrentUser && (
             <button onClick={handleMessage} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors flex items-center gap-2">
               <MessageSquareIcon className="w-4 h-4" /> Message
             </button>
           )}
-          {profile.name === CURRENT_USER_NAME && (
+          {isCurrentUser && (
             <>
-              <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-200 transition-colors flex items-center gap-2">
+              <button
+                onClick={() => setIsEditing((prev) => !prev)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-200 transition-colors flex items-center gap-2"
+              >
                 <SettingsIcon className="w-4 h-4" /> Edit Profile
               </button>
               <button onClick={handleLogout} className="px-4 py-2 bg-red-50 text-red-700 rounded-xl text-sm font-bold shadow-sm hover:bg-red-100 transition-colors flex items-center gap-2">
@@ -61,17 +90,49 @@ export default function ProfileModal({ profile, onClose }) {
         </div>
 
         <div className="px-6 pb-8">
-          <h2 className="text-2xl font-extrabold text-slate-900">{profile.name}</h2>
+          <h2 className="text-2xl font-extrabold text-slate-900">{isEditing ? formState.name : profile.name}</h2>
           <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">{profile.role}</p>
 
           <div className="flex items-center gap-5 mt-4 text-sm text-slate-600">
             <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-slate-400" /> {profile.location}</span>
-            <span className="flex items-center gap-1.5"><Mail className="w-4 h-4 text-slate-400" /> Contact</span>
+            <span className="flex items-center gap-1.5"><Mail className="w-4 h-4 text-slate-400" /> {profile.email || 'Contact'}</span>
           </div>
+
+          {isEditing && isCurrentUser && (
+            <div className="mt-5 space-y-3">
+              <input
+                value={formState.name}
+                onChange={(e) => setFormState((prev) => ({ ...prev, name: e.target.value }))}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-600"
+                placeholder="Full name"
+              />
+              <input
+                value={formState.avatar}
+                onChange={(e) => setFormState((prev) => ({ ...prev, avatar: e.target.value }))}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-600"
+                placeholder="Avatar image URL"
+              />
+              <textarea
+                value={formState.bio}
+                onChange={(e) => setFormState((prev) => ({ ...prev, bio: e.target.value }))}
+                rows={3}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none resize-none focus:border-blue-600"
+                placeholder="Bio"
+              />
+              {saveError && <p className="text-xs text-red-600">{saveError}</p>}
+              <button
+                onClick={handleSave}
+                disabled={profileSaving || !formState.name.trim()}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-60"
+              >
+                {profileSaving ? 'Saving...' : 'Save Profile'}
+              </button>
+            </div>
+          )}
 
           <div className="mt-6 border-t border-slate-100 pt-5">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5"><Info className="w-3.5 h-3.5"/> About</p>
-            <p className="text-sm text-slate-600 leading-relaxed">{profile.bio}</p>
+            <p className="text-sm text-slate-600 leading-relaxed">{isEditing ? formState.bio : profile.bio}</p>
           </div>
 
           <div className="mt-6">

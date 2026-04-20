@@ -70,10 +70,12 @@ export function AuthProvider({ children }) {
       });
       if (signInError) throw signInError;
       clearRateLimit('login', safeEmail);
-      setIsAuthenticated(true);
-      setUser(data.user);
+      const hasSession = Boolean(data?.session);
+      setIsAuthenticated(hasSession);
+      setUser(data?.user || null);
       return { success: true };
     } catch (err) {
+      console.error('Login error:', err);
       recordRateLimitFailure('login', safeEmail);
       const safeMessage = toSafeAuthErrorMessage(err);
       setError(safeMessage);
@@ -105,6 +107,11 @@ export function AuthProvider({ children }) {
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: safeEmail,
         password: safePassword,
+        options: {
+          data: {
+            full_name: safeFullName,
+          },
+        },
       });
       if (signUpError) throw signUpError;
 
@@ -125,10 +132,21 @@ export function AuthProvider({ children }) {
       }
 
       clearRateLimit('register', safeEmail);
-      setIsAuthenticated(true);
-      setUser(authData.user);
-      return { success: true };
+      const hasSession = Boolean(authData.session);
+      if (hasSession) {
+        setIsAuthenticated(true);
+        setUser(authData.user);
+        return { success: true };
+      }
+
+      setIsAuthenticated(false);
+      setUser(null);
+      return {
+        success: true,
+        message: 'Account created. Check your inbox and confirm your email before signing in.',
+      };
     } catch (err) {
+      console.error('Register error:', err);
       recordRateLimitFailure('register', safeEmail);
       const safeMessage = toSafeAuthErrorMessage(err);
       setError(safeMessage);

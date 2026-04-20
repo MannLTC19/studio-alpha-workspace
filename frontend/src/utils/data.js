@@ -85,10 +85,10 @@ export const directoryUsers = Object.keys(richProfiles).filter(n => n !== CURREN
 export const initialMeetings = [
   {
     id: 1, title: 'Weekly Design Sync', date: 'Today', time: '09:30 AM - 10:30 AM',
-    attendees: 5, type: 'Internal', link: 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_mock1', agendas: [],
+    attendees: 5, type: 'Internal', link: 'https://teams.microsoft.com/', agendas: [],
   },
   {
     id: 2, title: 'Client: Horizon Tower Phase 1 Review', date: 'Today', time: '02:00 PM - 03:00 PM',
-    attendees: 12, type: 'External', link: 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_mock2', agendas: [],
+    attendees: 12, type: 'External', link: 'https://teams.microsoft.com/', agendas: [],
   },
 ];

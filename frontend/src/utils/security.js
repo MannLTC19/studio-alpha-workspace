@@ -58,23 +58,36 @@ export function validateAuthInput({ email, password, fullName, isRegister = fals
 
 export function toSafeAuthErrorMessage(error) {
   const text = sanitizeTextInput(error?.message || error || '');
+  const status = Number(error?.status || error?.code || 0);
 
   if (!text) {
     return 'Authentication failed. Please try again.';
   }
 
   const lowered = text.toLowerCase();
+  if (lowered.includes('email not confirmed') || lowered.includes('confirm your email')) {
+    return 'Please verify your email before signing in.';
+  }
   if (lowered.includes('invalid login credentials')) {
+    return 'Invalid email or password.';
+  }
+  if (lowered.includes('invalid grant')) {
     return 'Invalid email or password.';
   }
   if (lowered.includes('email rate limit exceeded')) {
     return 'Too many attempts. Please wait and try again.';
+  }
+  if (lowered.includes('signup is disabled')) {
+    return 'Sign up is currently disabled for this project.';
   }
   if (lowered.includes('user already registered')) {
     return 'This email is already registered.';
   }
   if (lowered.includes('password')) {
     return 'Password does not meet requirements.';
+  }
+  if (status === 400) {
+    return 'Sign-in failed. Check your email/password and confirm your email if you just registered.';
   }
 
   return 'Authentication failed. Please check your details and try again.';

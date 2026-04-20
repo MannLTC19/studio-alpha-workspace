@@ -9,7 +9,14 @@ import AgendaModal from '../components/modals/AgendaModal';
 
 export default function Messaging() {
   const { params, navigate } = useNavigation();
-  const { groups: messageGroups, dms: directMessages, setShowAddGroup, setShowAddDM } = useChat();
+  const {
+    groups: messageGroups,
+    dms: directMessages,
+    setShowAddGroup,
+    setShowAddDM,
+    getMessagesForConversation,
+    sendMessage,
+  } = useChat();
   const { viewProfile } = useProfile();
 
   const groupSlug = params.group;
@@ -22,18 +29,27 @@ export default function Messaging() {
   const activeDM = dmSlug ? directMessages.find((d) => d.slug === dmSlug) : null;
   const conversationName = activeGroup?.name ?? activeDM?.name ?? null;
   const isChatActive = Boolean(groupSlug || dmSlug);
-
-  const mockMessages = [
-    { id: '1', sender: 'Sarah Chen', time: '10:24 AM', text: "I've updated the structural renders for the atrium. The glass curvature needs to be slightly more aggressive to maintain the architectural flow." },
-    { id: '2', sender: 'You', time: '10:31 AM', text: "Looks stunning, Sarah. The way the light hits those curves at sunset will be phenomenal. I'll pass this to the engineering team.", isSelf: true },
-    { id: '3', isSystem: true, text: 'Engineering Team joined the conversation' }
-  ];
+  const messages = getMessagesForConversation(groupSlug, dmSlug);
 
   useEffect(() => {
     if (!isChatActive && window.innerWidth >= 768) {
-      navigate('/messaging?group=zenith');
+      const firstGroup = messageGroups[0];
+      if (firstGroup) {
+        navigate(`/messaging?group=${firstGroup.slug}`);
+      }
     }
-  }, [isChatActive, navigate]);
+  }, [isChatActive, messageGroups, navigate]);
+
+  const formatMessageTime = (isoString) => {
+    if (!isoString) return '';
+    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleSendMessage = () => {
+    if (!inputText.trim() || !isChatActive) return;
+    sendMessage({ groupSlug, dmSlug, text: inputText, sender: 'You' });
+    setInputText('');
+  };
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-white relative">
@@ -170,8 +186,8 @@ export default function Messaging() {
                 </span>
               </div>
 
-              {mockMessages.map((msg) => {
-                if (msg.isSystem) {
+              {messages.map((msg) => {
+                if (msg.type === 'system') {
                   return (
                     <div key={msg.id} className="flex justify-center">
                       <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-100 border border-slate-200 rounded-lg">
@@ -182,11 +198,12 @@ export default function Messaging() {
                   );
                 }
 
+                const isSelf = msg.sender === 'You';
                 const profile = getProfile(msg.sender);
 
                 return (
-                  <div key={msg.id} className={clsx("flex gap-3 max-w-[85%] md:max-w-2xl", msg.isSelf ? "ml-auto flex-row-reverse" : "")}>
-                    {!msg.isSelf && (
+                  <div key={msg.id} className={clsx("flex gap-3 max-w-[85%] md:max-w-2xl", isSelf ? "ml-auto flex-row-reverse" : "")}>
+                    {!isSelf && (
                         profile.avatar ? (
                           <img 
                             src={profile.avatar} 
@@ -203,19 +220,19 @@ export default function Messaging() {
                           </div>
                         )
                     )}
-                    <div className={clsx("space-y-1", msg.isSelf ? "text-right" : "text-left")}>
-                      <div className={clsx("flex items-baseline gap-2", msg.isSelf && "justify-end")}>
+                    <div className={clsx("space-y-1", isSelf ? "text-right" : "text-left")}>
+                      <div className={clsx("flex items-baseline gap-2", isSelf && "justify-end")}>
                         <span 
                           onClick={() => viewProfile(profile)}
-                          className={clsx("text-xs font-bold text-slate-800", !msg.isSelf && "cursor-pointer hover:underline")}
+                          className={clsx("text-xs font-bold text-slate-800", !isSelf && "cursor-pointer hover:underline")}
                         >
-                          {msg.isSelf ? 'You' : msg.sender}
+                          {isSelf ? 'You' : msg.sender}
                         </span>
-                        <span className="text-[10px] text-slate-400">{msg.time}</span>
+                        <span className="text-[10px] text-slate-400">{formatMessageTime(msg.createdAt)}</span>
                       </div>
                       <div className={clsx(
                         "px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm",
-                        msg.isSelf 
+                        isSelf 
                           ? "bg-blue-600 text-white rounded-tr-sm" 
                           : "bg-white border border-slate-200 text-slate-700 rounded-tl-sm"
                       )}>
@@ -232,6 +249,12 @@ export default function Messaging() {
                 <textarea
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
                   className="w-full bg-transparent border-none outline-none text-slate-700 text-sm p-2 resize-none h-[44px] placeholder:text-slate-400"
                   placeholder={`Message ${conversationName}...`}
                 />
@@ -241,7 +264,11 @@ export default function Messaging() {
                     <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Paperclip className="w-4 h-4" /></button>
                     <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><ImageIcon className="w-4 h-4" /></button>
                   </div>
-                  <button className="bg-blue-600 text-white p-2 md:px-4 md:py-2 rounded-lg hover:bg-blue-700 active:scale-95 transition-all shadow-sm flex items-center gap-2">
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={!inputText.trim()}
+                    className="bg-blue-600 text-white p-2 md:px-4 md:py-2 rounded-lg hover:bg-blue-700 active:scale-95 transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
+                  >
                     <span className="hidden md:inline text-sm font-bold">Send</span>
                     <Send className="w-4 h-4" />
                   </button>

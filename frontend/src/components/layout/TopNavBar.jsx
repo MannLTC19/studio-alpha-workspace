@@ -3,12 +3,12 @@ import { Compass, Search, Bell, BellRing, Settings as SettingsIcon } from 'lucid
 import clsx from '../../utils/clsx';
 import { useNavigation } from '../../context/NavigationContext';
 import { useProfile } from '../../context/ProfileContext';
-import { getProfile, CURRENT_USER_NAME } from '../../utils/data';
+import { getProfile } from '../../utils/data';
 
 export default function TopNavBar() {
   const { navigate } = useNavigation();
-  const { viewProfile } = useProfile();
-  const currentUserProfile = getProfile(CURRENT_USER_NAME);
+  const { viewProfile, currentUserProfile } = useProfile();
+  const userProfile = currentUserProfile || getProfile('You');
   const [showNotifs, setShowNotifs] = useState(false);
 
   const notifications = [
@@ -82,16 +82,16 @@ export default function TopNavBar() {
 
         <div 
           className="flex items-center gap-3 cursor-pointer group hover:bg-slate-50 p-1.5 rounded-xl transition-all"
-          onClick={() => viewProfile(currentUserProfile)}
+          onClick={() => viewProfile({ ...userProfile, isCurrentUser: true })}
         >
           <img
-            src={currentUserProfile.avatar}
+            src={userProfile.avatar}
             alt="User profile"
             className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-2 border-transparent group-hover:border-blue-300 group-hover:shadow-sm transition-all"
           />
           <div className="hidden lg:block text-right">
-            <p className="text-sm font-bold text-slate-800 leading-none group-hover:text-blue-700 transition-colors">{currentUserProfile.name}</p>
-            <p className="text-[10px] text-slate-500 font-medium mt-1 uppercase tracking-wider">{currentUserProfile.role}</p>
+            <p className="text-sm font-bold text-slate-800 leading-none group-hover:text-blue-700 transition-colors">{userProfile.name}</p>
+            <p className="text-[10px] text-slate-500 font-medium mt-1 uppercase tracking-wider">{userProfile.role}</p>
           </div>
         </div>
       </div>
