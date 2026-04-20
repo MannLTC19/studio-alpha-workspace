@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
-import { Video, Clock, ClipboardList, Users } from 'lucide-react';
+import { Video, Clock, ClipboardList, Users, Share2 } from 'lucide-react';
 import { useMeetings } from '../context/MeetingsContext';
 import NewMeetingModal from '../components/modals/NewMeetingModal';
 
 export default function Workspace() {
   const { meetings } = useMeetings();
   const [showNewMeeting, setShowNewMeeting] = useState(false);
+  const [openedMeetingId, setOpenedMeetingId] = useState(null);
+
+  const openMeetingInNewTab = (meeting) => {
+    window.open(meeting.link, '_blank', 'noopener,noreferrer');
+    setOpenedMeetingId(meeting.id);
+    window.setTimeout(() => setOpenedMeetingId(null), 1800);
+  };
 
   return (
     <div className="h-full overflow-y-auto bg-slate-50/50">
@@ -53,14 +60,20 @@ export default function Workspace() {
                   </div>
                 </div>
 
-                <a
-                  href={meeting.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 bg-[#5B5FC7] hover:bg-[#4b4eb0] text-white px-6 py-3.5 rounded-lg font-bold transition-all w-full md:w-auto flex-shrink-0 shadow-sm hover:shadow-md active:scale-95 border border-[#4b4eb0]"
-                >
-                  <Video className="w-5 h-5" /> Join Teams Meeting
-                </a>
+                <div className="w-full md:w-auto flex-shrink-0 flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => openMeetingInNewTab(meeting)}
+                    className="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 px-4 py-3 rounded-lg font-bold transition-all shadow-sm border border-slate-300"
+                  >
+                    <Share2 className="w-4 h-4" /> {openedMeetingId === meeting.id ? 'Opened' : 'Open Link'}
+                  </button>
+                  <button
+                    onClick={() => openMeetingInNewTab(meeting)}
+                    className="flex items-center justify-center gap-2 bg-[#5B5FC7] hover:bg-[#4b4eb0] text-white px-6 py-3.5 rounded-lg font-bold transition-all w-full md:w-auto flex-shrink-0 shadow-sm hover:shadow-md active:scale-95 border border-[#4b4eb0]"
+                  >
+                    <Video className="w-5 h-5" /> Join Teams Meeting
+                  </button>
+                </div>
               </div>
 
               {meeting.agendas.length > 0 && (
